@@ -82,6 +82,26 @@ Frontend dashboard:
 http://localhost:3000
 ```
 
+## Render Deployment
+
+This repository is set up for a free Render deployment with two services:
+
+1. Backend web service from `task03-agent/backend`
+2. Frontend static site from `task03-agent/frontend`
+
+Backend settings:
+- Build command: `pip install -r requirements.txt`
+- Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- Required env var: `GEMINI_API_KEY`
+- Optional env var: `CORS_ORIGINS=https://your-frontend.onrender.com`
+
+Frontend settings:
+- Build command: `npm ci && npm run build`
+- Publish directory: `dist`
+- Env var: `VITE_API_BASE_URL=https://your-backend.onrender.com`
+
+The backend keeps localhost origins for development and can also accept Render-hosted frontend domains through CORS configuration.
+
 ## Verification
 
 Backend tests:
@@ -119,4 +139,4 @@ npx playwright test
 - Runs and reports are stored in process memory, so they are not persisted after backend restart.
 - Live model calls require a valid Gemini API key and available quota.
 - Cost telemetry uses provider token metadata when available and conservative token estimation while streaming.
-- The frontend is configured for a local backend at `localhost:8000`.
+- The frontend defaults to `localhost:8000`, but can point at Render via `VITE_API_BASE_URL`.

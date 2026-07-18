@@ -104,6 +104,8 @@ const EmptyTerminal = () => (
   </div>
 );
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL?.trim() || 'http://localhost:8000').replace(/\/$/, '');
+
 export default function App() {
   const [topic, setTopic] = useState('wearable technology competitive landscape top 5 competitors');
   const [budget, setBudget] = useState(1.0);
@@ -160,7 +162,7 @@ export default function App() {
 
   const connectSSE = (id: string) => {
     eventSourceRef.current?.close();
-    const eventSource = new EventSource(`http://localhost:8000/api/v1/agent/stream/${id}`);
+    const eventSource = new EventSource(`${API_BASE_URL}/api/v1/agent/stream/${id}`);
     eventSourceRef.current = eventSource;
 
     eventSource.onmessage = (event) => {
@@ -222,7 +224,7 @@ export default function App() {
     });
 
     try {
-      const res = await fetch('http://localhost:8000/api/v1/agent/run', {
+      const res = await fetch(`${API_BASE_URL}/api/v1/agent/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -261,7 +263,7 @@ export default function App() {
   const downloadPDF = async () => {
     if (!runId) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/agent/report/${runId}/pdf`);
+      const res = await fetch(`${API_BASE_URL}/api/v1/agent/report/${runId}/pdf`);
       if (!res.ok) {
         throw new Error('Failed to download PDF. Server returned an error.');
       }
