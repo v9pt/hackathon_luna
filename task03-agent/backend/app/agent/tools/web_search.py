@@ -10,7 +10,6 @@ from app.models.schemas import ToolResult
 
 logger = logging.getLogger(__name__)
 
-_SEARCH_MODEL = "gemini-2.0-flash"
 _GOOGLE_SEARCH_TOOL = {"google_search": {}}
 _MAX_RETRIES = 3
 
@@ -19,7 +18,7 @@ async def _gemini_search(query: str) -> Any:
     """Call Gemini with google_search grounding enabled."""
     settings = get_settings()
     llm = ChatGoogleGenerativeAI(
-        model=_SEARCH_MODEL,
+        model=settings.gemini_model_name,
         google_api_key=settings.gemini_api_key,
     )
     llm_with_search = llm.bind_tools([_GOOGLE_SEARCH_TOOL])

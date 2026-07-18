@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     gemini_api_key: str
+    gemini_model_name: str = "gemini-2.5-flash"
     max_cost_usd: float = 1.0
     max_iterations: int = 25
 

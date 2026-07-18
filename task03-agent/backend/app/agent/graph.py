@@ -29,13 +29,12 @@ logger = logging.getLogger(__name__)
 
 _TOOLS = [web_search, pdf_reader, code_executor, store_memory, retrieve_memory]
 _TOOL_MAP = {t.name: t for t in _TOOLS}
-_MODEL = "gemini-2.0-flash"
 
 
 def _build_llm() -> ChatGoogleGenerativeAI:
     settings = get_settings()
     return ChatGoogleGenerativeAI(
-        model=_MODEL,
+        model=settings.gemini_model_name,
         google_api_key=settings.gemini_api_key,
         streaming=True,
     )
@@ -91,7 +90,7 @@ async def call_agent(state: AgentState, config: RunnableConfig) -> dict[str, Any
             if hasattr(chunk, "usage_metadata") and chunk.usage_metadata:
                 meta = chunk.usage_metadata
                 snapshot = tracker.record(
-                    _MODEL,
+                    get_settings().gemini_model_name,
                     prompt_tokens=meta.get("input_tokens", 0),
                     completion_tokens=meta.get("output_tokens", 0),
                 )
@@ -196,7 +195,7 @@ async def synthesize_report(state: AgentState, config: RunnableConfig) -> dict[s
             if hasattr(chunk, "usage_metadata") and chunk.usage_metadata:
                 meta = chunk.usage_metadata
                 snapshot = tracker.record(
-                    _MODEL,
+                    get_settings().gemini_model_name,
                     prompt_tokens=meta.get("input_tokens", 0),
                     completion_tokens=meta.get("output_tokens", 0),
                 )

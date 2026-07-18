@@ -4,6 +4,8 @@ from app.models.schemas import CostSnapshot
 
 # Prices per 1 million tokens (USD) — Gemini pricing as of 2024-07
 _PRICE_PER_1M: dict[str, dict[str, float]] = {
+    "gemini-3.5-flash": {"input": 0.075, "output": 0.30},
+    "gemini-2.5-flash": {"input": 0.075, "output": 0.30},
     "gemini-2.0-flash": {"input": 0.075, "output": 0.30},
     "gemini-2.0-flash-exp": {"input": 0.075, "output": 0.30},
     "gemini-1.5-flash": {"input": 0.075, "output": 0.30},
