@@ -16,6 +16,7 @@ router = APIRouter(prefix="/api/v1")
 
 # In-memory stores (single-process; fine for assessment/demo)
 _reports: Dict[str, str] = {}
+_charts: Dict[str, list[Dict[str, Any]]] = {}
 _runs: Dict[str, AgentRunRequest] = {}
 
 
@@ -55,6 +56,7 @@ async def _event_stream(run_id: str) -> AsyncGenerator[str, None]:
         async for event in run_agent(run_id, request.topic, request.max_cost_usd):
             if event.type == "report":
                 _reports[run_id] = event.data.get("markdown", "")
+                _charts[run_id] = event.data.get("charts", [])
             yield event.to_sse_line()
             await asyncio.sleep(0)  # Yield control for async streaming
     except Exception as exc:
@@ -121,7 +123,8 @@ async def get_report_pdf(run_id: str) -> Response:
         )
     
     try:
-        pdf_data = generate_pdf(markdown)
+        charts = _charts.get(run_id, [])
+        pdf_data = generate_pdf(markdown, charts)
         return Response(
             content=pdf_data,
             media_type="application/pdf",

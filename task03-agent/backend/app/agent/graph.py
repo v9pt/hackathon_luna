@@ -71,22 +71,27 @@ See the generated radar-style comparison visualization attached to the report pa
 
 ## Competitor Profiles
 ### Apple Watch
-Apple owns the premium smartwatch narrative through ecosystem lock-in, safety features, app depth, and health sensors. Its main weakness is battery life compared with endurance-focused rivals.
+Apple owns the premium smartwatch narrative through its seamless ecosystem lock-in, advanced safety features, unparalleled app depth, and clinical-grade health sensors. The latest Apple Watch Series 9 and Ultra 2 models feature robust optical heart sensors, an FDA-cleared ECG app, blood oxygen sensing, and temperature sensing for cycle tracking. The Ultra 2 specifically boasts a massive 542 mAh battery capable of up to 36 hours of standard use or 72 hours in low power mode, setting a new benchmark for Apple's endurance. 
+Running on watchOS 10, the software provides a fluid, widget-driven interface that integrates perfectly with iOS. Health metrics are tightly integrated into the Apple Health app, offering actionable insights into cardio fitness, sleep stages (Core, Deep, REM), and mental health logging. Its main weakness remains the battery life of the standard models (typically 18 hours), which pales in comparison to dedicated endurance trackers.
 
 ### Samsung Galaxy Watch
-Samsung competes strongly for Android users with Wear OS, LTE variants, health tracking, and tight Galaxy ecosystem integration.
+Samsung competes aggressively for Android users, serving as the de facto flagship Wear OS experience. The Galaxy Watch 6 series features the BioActive Sensor, a powerful 3-in-1 chip that combines Optical Heart Rate, Electrical Heart Signal, and Bioelectrical Impedance Analysis (BIA) to provide detailed body composition metrics—a standout feature in the market.
+Battery capacities range from 300 mAh on the smaller models to 425 mAh on the classic variants, generally delivering 30 to 40 hours of use depending on the always-on display settings. Powered by Wear OS 4 with Samsung's One UI Watch interface, the devices offer robust LTE options, seamless Samsung Health integration, and advanced sleep coaching programs.
 
 ### Garmin
-Garmin wins with athletes and outdoor users through GPS reliability, battery endurance, rugged hardware, and advanced training analytics.
+Garmin caters to the performance, endurance, and outdoor enthusiast segments, dominating with GPS reliability, extraordinary battery endurance, and rugged hardware. The Fenix 7 Pro and Epix Pro series feature the advanced Elevate V5 optical heart rate sensor, Pulse Ox, and multi-band GNSS for pinpoint location accuracy.
+Unlike standard smartwatches, Garmin devices measure battery life in days or weeks rather than hours. The Fenix 7X Pro, equipped with solar charging, can last up to 37 days in smartwatch mode. Running on a proprietary, highly optimized RTOS (Real-Time Operating System), Garmin prioritizes metrics like Training Readiness, HRV Status, and Body Battery over generic app ecosystems, making it the premier choice for serious athletes.
 
 ### Fitbit / Google Pixel Watch
-Fitbit and Pixel Watch serve mainstream health tracking with familiar wellness metrics, sleep analysis, and Google integration.
+Google's strategy bridges mainstream health tracking and premium smartwatch features through the Pixel Watch and Fitbit ecosystems. The Pixel Watch 2 introduces an upgraded multi-path heart rate sensor, a continuous electrodermal activity (cEDA) sensor for stress tracking, and a skin temperature sensor.
+Equipped with a 306 mAh battery, the Pixel Watch 2 achieves a reliable 24-hour battery life with the always-on display active. Running Wear OS 4, it leverages Google's massive software ecosystem while deeply integrating Fitbit's renowned health algorithms, sleep stage analysis, and Daily Readiness Score (often requiring a Fitbit Premium subscription).
 
 ### Oura Ring
-Oura differentiates with an unobtrusive ring design, readiness scoring, sleep depth, temperature trends, and multi-day battery life.
+Oura differentiates itself entirely by focusing on a passive, unobtrusive ring form factor optimized for recovery, sleep, and overall wellness. The Oura Ring Gen3 is packed with research-grade sensors, including red and green LEDs for daytime and workout heart rate, infrared photoplethysmography (PPG) sensors for nighttime resting heart rate and HRV, and highly sensitive negative temperature coefficient (NTC) sensors.
+Despite its incredibly small size, the ring houses a battery (varying from 15 mAh to 22 mAh depending on ring size) that delivers up to 7 days of continuous use. It relies on a proprietary firmware architecture that syncs to a comprehensive iOS/Android companion app, renowned for its deeply actionable Sleep, Readiness, and Activity scores.
 
 ## Conclusion & Key Differentiators
-Apple and Samsung dominate ecosystem-led smartwatches, Garmin leads performance wearables, Fitbit/Google covers mainstream wellness, and Oura owns the premium smart-ring recovery niche. A winning product strategy should choose one wedge clearly: ecosystem depth, clinical-grade sensing, endurance, affordability, or passive comfort.
+The wearable technology landscape is highly segmented. Apple and Samsung dominate the ecosystem-led smartwatch category, offering deep smartphone integration and clinical-grade sensing. Garmin maintains an iron grip on the performance segment with unmatched battery life and athletic analytics. Fitbit and Google effectively cover mainstream wellness, while Oura successfully pioneered and dominates the premium smart-ring recovery niche. A winning product strategy must choose a distinct wedge: ecosystem lock-in, clinical health monitoring, extreme endurance, or passive comfort.
 """
 
 
