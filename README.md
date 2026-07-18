@@ -92,11 +92,12 @@ This repository is set up for a free Render deployment with two services:
 Backend settings:
 - Build command: `pip install -r requirements.txt`
 - Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- Python version: `python-3.11.9` via `task03-agent/backend/runtime.txt`
 - Required env var: `GEMINI_API_KEY`
 - Optional env var: `CORS_ORIGINS=https://your-frontend.onrender.com`
 
 Frontend settings:
-- Build command: `npm ci && npm run build`
+- Build command: `npm install && npm run build`
 - Publish directory: `dist`
 - Env var: `VITE_API_BASE_URL=https://your-backend.onrender.com`
 
