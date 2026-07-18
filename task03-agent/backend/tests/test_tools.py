@@ -22,24 +22,29 @@ from app.models.schemas import ToolResult
 class TestWebSearch:
     @pytest.mark.asyncio
     async def test_returns_tool_result_on_success(self) -> None:
-        mock_response = MagicMock()
-        mock_response.content = (
-            "Apple Watch Series 9 features advanced health sensors..."
-        )
-        mock_response.candidates = [
-            MagicMock(
-                grounding_metadata=MagicMock(
-                    grounding_chunks=[
-                        MagicMock(
-                            web=MagicMock(
-                                uri="https://apple.com/watch",
-                                title="Apple Watch",
-                            )
-                        )
-                    ]
-                )
-            )
-        ]
+        mock_response = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {
+                                "text": "Apple Watch Series 9 features advanced health sensors..."
+                            }
+                        ]
+                    },
+                    "groundingMetadata": {
+                        "groundingChunks": [
+                            {
+                                "web": {
+                                    "uri": "https://apple.com/watch",
+                                    "title": "Apple Watch",
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
 
         with patch(
             "app.agent.tools.web_search._gemini_search",
