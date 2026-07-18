@@ -1,6 +1,8 @@
 import json
 import logging
+import os
 
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
 import chromadb
 from langchain_core.tools import tool
 
@@ -8,8 +10,10 @@ from app.models.schemas import ToolResult
 
 logger = logging.getLogger(__name__)
 
+from chromadb.config import Settings as ChromaSettings
+
 # Module-level ChromaDB client (in-process, ephemeral)
-_chroma_client = chromadb.Client()
+_chroma_client = chromadb.Client(ChromaSettings(anonymized_telemetry=False))
 
 
 def _get_collection(run_id: str) -> chromadb.Collection:

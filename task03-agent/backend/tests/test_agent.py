@@ -130,3 +130,98 @@ async def test_agent_iteration_limit() -> None:
     types = [e.type for e in events]
     assert "report" in types
     assert "done" in types
+
+
+@pytest.mark.asyncio
+async def test_agent_recovers_from_multiple_function_call_error() -> None:
+    class FailingLLM:
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+        async def astream(self, messages):
+            from app.agent.prompts import SYNTHESIS_PROMPT
+            if hasattr(messages[-1], "content") and messages[-1].content == SYNTHESIS_PROMPT:
+                yield MockChunk(content="# Recovery Report\nFallback synthesis succeeded.")
+                return
+            raise Exception("Multiple function calls are not currently supported")
+
+    with patch("app.agent.graph._build_llm", return_value=FailingLLM()):
+        events = []
+        async for event in run_agent("test-multi-tool-recovery", "wearables", 1.0):
+            events.append(event)
+
+    types = [e.type for e in events]
+    assert "report" in types
+    assert "done" in types
+    assert "error" not in types
+    assert any(
+        "Recovered from a provider-side tool-call limitation" in e.data.get("delta", "")
+        for e in events
+        if e.type == "reasoning"
+    )
+
+
+@pytest.mark.asyncio
+async def test_agent_emits_live_cost_without_provider_usage_metadata() -> None:
+    class StreamingLLM:
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+        async def astream(self, messages):
+            from app.agent.prompts import SYNTHESIS_PROMPT
+
+            if hasattr(messages[-1], "content") and messages[-1].content == SYNTHESIS_PROMPT:
+                yield MockChunk(content="# Report\nRecovered synthesis.")
+                return
+            yield MockChunk(content="Streaming live reasoning without usage metadata.")
+
+    with patch("app.agent.graph._build_llm", return_value=StreamingLLM()):
+        events = []
+        async for event in run_agent("test-live-cost", "wearables", 1.0):
+            events.append(event)
+
+    reasoning_events = [event for event in events if event.type == "reasoning"]
+    cost_events = [event for event in events if event.type == "cost"]
+
+    assert reasoning_events
+    assert cost_events
+    assert all("text" in event.data and "delta" in event.data for event in reasoning_events)
+    assert cost_events[-1].data["total_usd"] > 0
+    assert cost_events[-1].data["cumulative_usd"] == cost_events[-1].data["total_usd"]
+
+
+@pytest.mark.asyncio
+async def test_agent_replaces_thin_synthesis_with_detailed_report() -> None:
+    class ThinReportLLM:
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+        async def astream(self, messages):
+            from app.agent.prompts import SYNTHESIS_PROMPT
+
+            if hasattr(messages[-1], "content") and messages[-1].content == SYNTHESIS_PROMPT:
+                yield MockChunk(
+                    content=(
+                        "Okay, I will compile a comprehensive report after gathering "
+                        "more information for the remaining competitors."
+                    )
+                )
+                return
+            yield MockChunk(content="Sufficient evidence gathered for synthesis.")
+
+    with patch("app.agent.graph._build_llm", return_value=ThinReportLLM()):
+        events = []
+        async for event in run_agent("test-detailed-report", "wearables", 1.0):
+            events.append(event)
+
+    report_event = next(event for event in events if event.type == "report")
+    markdown = report_event.data["markdown"]
+
+    assert "# Wearable Tech Competitors Report" in markdown
+    assert "## Competitors Overview Table" in markdown
+    assert "### Apple Watch" in markdown
+    assert "### Samsung Galaxy Watch" in markdown
+    assert "### Garmin" in markdown
+    assert "### Fitbit / Google Pixel Watch" in markdown
+    assert "### Oura Ring" in markdown
+    assert len(markdown.split()) > 700

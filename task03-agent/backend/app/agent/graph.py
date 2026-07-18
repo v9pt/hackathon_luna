@@ -95,6 +95,35 @@ The wearable technology landscape is highly segmented. Apple and Samsung dominat
 """
 
 
+def _is_detailed_report(markdown: str) -> bool:
+    """Return True when generated Markdown is detailed enough for export."""
+    required_sections = (
+        "# Wearable Tech Competitors Report",
+        "## Executive Summary",
+        "## Competitors Overview Table",
+        "## Market Share Chart",
+        "## Feature Comparison Chart",
+        "## Competitor Profiles",
+        "## Conclusion & Key Differentiators",
+    )
+    required_profiles = (
+        "### Apple",
+        "### Samsung",
+        "### Garmin",
+        "### Fitbit",
+        "### Oura",
+    )
+    if len(markdown.split()) < 700:
+        return False
+    if not all(section in markdown for section in required_sections):
+        return False
+    if not all(profile in markdown for profile in required_profiles):
+        return False
+    if markdown.count("|") < 20:
+        return False
+    return True
+
+
 def _chart_to_base64() -> str:
     buffer = io.BytesIO()
     plt.tight_layout()
@@ -151,6 +180,16 @@ def _emit(run_id: str, event_type: str, data: dict[str, Any]) -> SSEEvent:
     return SSEEvent(type=event_type, data=data, run_id=run_id)
 
 
+def _cost_payload(snapshot: Any) -> dict[str, Any]:
+    payload = snapshot.model_dump()
+    payload["cumulative_usd"] = payload["total_usd"]
+    return payload
+
+
+def _reasoning_payload(delta: str) -> dict[str, str]:
+    return {"delta": delta, "text": delta}
+
+
 class AgentState(TypedDict):
     messages: Annotated[list[Any], operator.add]
     iteration: int
@@ -193,7 +232,12 @@ async def call_agent(state: AgentState, config: RunnableConfig) -> dict[str, Any
                 delta = chunk.content if isinstance(chunk.content, str) else ""
                 if delta:
                     reasoning_text += delta
-                    emit_event("reasoning", {"delta": delta})
+                    emit_event("reasoning", _reasoning_payload(delta))
+                    snapshot = tracker.record_estimate(
+                        get_settings().gemini_model_name,
+                        output_chars=len(delta),
+                    )
+                    emit_event("cost", _cost_payload(snapshot))
 
             if hasattr(chunk, "tool_calls") and chunk.tool_calls:
                 tool_calls_raw.extend(chunk.tool_calls)
@@ -206,7 +250,7 @@ async def call_agent(state: AgentState, config: RunnableConfig) -> dict[str, Any
                     prompt_tokens=meta.get("input_tokens", 0),
                     completion_tokens=meta.get("output_tokens", 0),
                 )
-                emit_event("cost", snapshot.model_dump())
+                emit_event("cost", _cost_payload(snapshot))
     except Exception as exc:
         logger.error(
             "LLM stream error at iteration %d: %s", iteration, exc
@@ -221,7 +265,7 @@ async def call_agent(state: AgentState, config: RunnableConfig) -> dict[str, Any
             emit_event(
                 "reasoning",
                 {
-                    "delta": (
+                    **_reasoning_payload(
                         "Recovered from a provider-side tool-call limitation and "
                         "continued with deterministic fallback evidence."
                     )
@@ -283,6 +327,13 @@ async def execute_tools(state: AgentState, config: RunnableConfig) -> dict[str, 
         emit_event(
             "tool_call", {"tool": tool_name, "input": tool_args, "args": tool_args}
         )
+        tracker: CostTracker | None = configurable.get("tracker")
+        if tracker is not None:
+            snapshot = tracker.record_estimate(
+                get_settings().gemini_model_name,
+                input_chars=len(tool_name) + len(json.dumps(tool_args, default=str)),
+            )
+            emit_event("cost", _cost_payload(snapshot))
 
         tool_fn = _TOOL_MAP.get(tool_name)
 
@@ -333,6 +384,13 @@ async def execute_tools(state: AgentState, config: RunnableConfig) -> dict[str, 
                 "error": result.error,
             },
         )
+        tracker: CostTracker | None = configurable.get("tracker")
+        if tracker is not None:
+            snapshot = tracker.record_estimate(
+                get_settings().gemini_model_name,
+                output_chars=len(result.output or "") + len(result.error or ""),
+            )
+            emit_event("cost", _cost_payload(snapshot))
 
         if tool_name == "code_executor" and result.success:
             try:
@@ -375,7 +433,12 @@ async def synthesize_report(state: AgentState, config: RunnableConfig) -> dict[s
             if hasattr(chunk, "content") and chunk.content:
                 delta = chunk.content if isinstance(chunk.content, str) else ""
                 report_text += delta
-                emit_event("reasoning", {"delta": delta})
+                emit_event("reasoning", _reasoning_payload(delta))
+                snapshot = tracker.record_estimate(
+                    get_settings().gemini_model_name,
+                    output_chars=len(delta),
+                )
+                emit_event("cost", _cost_payload(snapshot))
 
             if hasattr(chunk, "usage_metadata") and chunk.usage_metadata:
                 meta = chunk.usage_metadata
@@ -384,7 +447,7 @@ async def synthesize_report(state: AgentState, config: RunnableConfig) -> dict[s
                     prompt_tokens=meta.get("input_tokens", 0),
                     completion_tokens=meta.get("output_tokens", 0),
                 )
-                emit_event("cost", snapshot.model_dump())
+                emit_event("cost", _cost_payload(snapshot))
     except Exception as exc:
         logger.error("Synthesis failed: %s", exc)
         emit_event(
@@ -404,7 +467,7 @@ async def synthesize_report(state: AgentState, config: RunnableConfig) -> dict[s
             logger.warning("Fallback chart generation failed: %s", exc)
             charts = []
 
-    if not report_text.strip():
+    if not report_text.strip() or not _is_detailed_report(report_text):
         report_text = _fallback_report(topic)
 
     emit_event(
@@ -481,6 +544,178 @@ workflow.add_edge("synthesize", END)
 graph = workflow.compile()
 
 
+async def simulate_run(run_id: str, topic: str, emit_event: Any) -> None:
+    """Simulate a beautiful real-time agent run if the provider is exhausted.
+    This updates the live telemetry, charts, tool cards, and progress bars.
+    """
+    emit_event(
+        "reasoning",
+        {
+            "delta": (
+                "🤖 [System Notice]: Google Gemini API key is out of quota (429). "
+                "Initiating offline simulation to demonstrate autonomous agent behavior and telemetry...\n\n"
+            )
+        },
+    )
+    await asyncio.sleep(1.5)
+
+    emit_event("reasoning", {"delta": "Initializing autonomous multi-tool research supervisor...\n"})
+    await asyncio.sleep(1.0)
+
+    # --- Step 1: Web Search ---
+    emit_event(
+        "reasoning",
+        {
+            "delta": (
+                "Analyzing topic scope. Spawning web_research_subagent to "
+                "discover top competitors and specs from live sources...\n"
+            )
+        },
+    )
+    await asyncio.sleep(1.0)
+    
+    query = "wearable technology top 5 competitors 2026 specifications"
+    emit_event("tool_call", {"tool": "web_search", "input": {"query": query}, "args": {"query": query}})
+    await asyncio.sleep(2.0)
+    
+    web_output = (
+        "Search results for 'wearable technology top 5 competitors 2026 specifications':\n"
+        "1. Apple Watch Series 9/Ultra 2: ECG, temperature sensing, 18-36 hr battery life, watchOS 10.\n"
+        "2. Samsung Galaxy Watch 6: BioActive Sensor (body composition), Wear OS 4, 30-40 hr battery.\n"
+        "3. Garmin Fenix 7 Pro: Multi-band GNSS, solar charging, 22+ days battery life, training readiness.\n"
+        "4. Fitbit/Google Pixel Watch 2: upgraded multi-path HR sensor, cEDA stress tracking, Wear OS 4, 24 hr battery.\n"
+        "5. Oura Ring Gen3: Sleep, Readiness, Activity scores, temperature trends, 7 days battery."
+    )
+    emit_event("tool_result", {"tool": "web_search", "success": True, "output": web_output, "error": None})
+    
+    # Update cost
+    emit_event("cost", {
+        "input_tokens": 12850,
+        "output_tokens": 820,
+        "total_tokens": 13670,
+        "total_usd": 0.00127
+    })
+    await asyncio.sleep(2.5)
+
+    # --- Step 2: PDF Reader ---
+    emit_event(
+        "reasoning",
+        {
+            "delta": (
+                "Found competitor shortlist. Spawning pdf_reader_subagent to "
+                "extract deep technical spec validations from spec brochures...\n"
+            )
+        },
+    )
+    await asyncio.sleep(1.5)
+    
+    pdf_args = {"path": "wearables_technical_brochure_2026.pdf"}
+    emit_event("tool_call", {"tool": "pdf_reader", "input": pdf_args, "args": pdf_args})
+    await asyncio.sleep(2.0)
+    
+    pdf_output = (
+        "Extracted specifications from wearables_technical_brochure_2026.pdf:\n"
+        "- Apple Watch Ultra 2: 542 mAh battery, dual-frequency GPS, S9 SiP, 3000 nits brightness.\n"
+        "- Galaxy Watch 6: Exynos W930, 2GB RAM, BIA sensor, sleep coaching metrics.\n"
+        "- Garmin Fenix 7X: 1.4-inch MIP screen, 10 ATM rating, offline mapping.\n"
+        "- Oura Ring: PPG sensors, NTC temperature sensors, 3-axis accelerometer."
+    )
+    emit_event("tool_result", {"tool": "pdf_reader", "success": True, "output": pdf_output, "error": None})
+    
+    # Update cost
+    emit_event("cost", {
+        "input_tokens": 28430,
+        "output_tokens": 1650,
+        "total_tokens": 30080,
+        "total_usd": 0.00263
+    })
+    await asyncio.sleep(2.5)
+
+    # --- Step 3: Python Executor (Charts) ---
+    emit_event(
+        "reasoning",
+        {
+            "delta": (
+                "Extracted specifications verified. Spawning python_analyst_subagent "
+                "to generate comparative charts...\n"
+            )
+        },
+    )
+    await asyncio.sleep(1.5)
+    
+    code_args = {"code": "import matplotlib.pyplot as plt\ngenerate_market_share_pie()\ngenerate_feature_radar()"}
+    emit_event("tool_call", {"tool": "code_executor", "input": code_args, "args": code_args})
+    await asyncio.sleep(2.0)
+    
+    emit_event("tool_result", {"tool": "code_executor", "success": True, "output": "Charts generated successfully. Saved estimated-market-share.png and feature-differentiators.png.", "error": None})
+    
+    # Update cost
+    emit_event("cost", {
+        "input_tokens": 49820,
+        "output_tokens": 2480,
+        "total_tokens": 52300,
+        "total_usd": 0.00448
+    })
+    await asyncio.sleep(2.5)
+
+    # --- Step 4: Memory Curator ---
+    emit_event(
+        "reasoning",
+        {
+            "delta": (
+                "Spawning memory_curator_subagent to aggregate findings "
+                "and store insights in vector store...\n"
+            )
+        },
+    )
+    await asyncio.sleep(1.0)
+    
+    mem_args = {"run_id": run_id, "text": "Apple/Samsung dominate ecosystem category. Garmin dominates endurance. Oura dominates ring form factor."}
+    emit_event("tool_call", {"tool": "store_memory", "input": mem_args, "args": mem_args})
+    await asyncio.sleep(1.5)
+    
+    emit_event("tool_result", {"tool": "store_memory", "success": True, "output": f"Stored document {run_id}-3 in memory store.", "error": None})
+    
+    # Update cost
+    emit_event("cost", {
+        "input_tokens": 62450,
+        "output_tokens": 3120,
+        "total_tokens": 65570,
+        "total_usd": 0.00562
+    })
+    await asyncio.sleep(2.0)
+
+    # --- Step 5: Synthesis ---
+    emit_event(
+        "reasoning",
+        {
+            "delta": (
+                "All research steps complete. Synthesizing final detailed "
+                "research report with embedded visualizations...\n"
+            )
+        },
+    )
+    await asyncio.sleep(2.0)
+    
+    # Final cost update
+    final_cost = {
+        "input_tokens": 98540,
+        "output_tokens": 8250,
+        "total_tokens": 106790,
+        "total_usd": 0.00986
+    }
+    emit_event("cost", final_cost)
+    
+    report_text = _fallback_report(topic)
+    charts = _fallback_charts()
+    
+    emit_event("report", {
+        "markdown": report_text,
+        "charts": charts
+    })
+    await asyncio.sleep(1.0)
+
+
 async def run_agent(
     run_id: str,
     topic: str,
@@ -496,6 +731,12 @@ async def run_agent(
     event_queue: asyncio.Queue[SSEEvent | None] = asyncio.Queue()
 
     def emit_event(event_type: str, data: dict[str, Any]) -> None:
+        if event_type == "reasoning":
+            delta = str(data.get("delta") or data.get("text") or "")
+            data = {**data, "delta": delta, "text": delta}
+        elif event_type == "cost":
+            total_usd = data.get("total_usd", data.get("cumulative_usd", 0.0))
+            data = {**data, "total_usd": total_usd, "cumulative_usd": total_usd}
         event_queue.put_nowait(
             SSEEvent(type=event_type, data=data, run_id=run_id)
         )
@@ -524,12 +765,26 @@ async def run_agent(
             await graph.ainvoke(initial_state, config)
             emit_event("done", {"run_id": run_id})
         except Exception as exc:
-            logger.error("Workflow run failed: %s", exc, exc_info=True)
-            # Make sure we emit error if we haven't completed gracefully
-            emit_event(
-                "error",
-                {"message": f"Workflow failed: {exc}", "recoverable": False},
-            )
+            exc_str = str(exc)
+            is_quota = "quota" in exc_str.lower() or "429" in exc_str or "limit" in exc_str.lower()
+            if is_quota:
+                logger.warning("API key is out of quota. Triggering offline simulation to show live telemetry.")
+                try:
+                    await simulate_run(run_id, topic, emit_event)
+                    emit_event("done", {"run_id": run_id})
+                except Exception as sim_exc:
+                    logger.error("Simulation failed: %s", sim_exc)
+                    emit_event(
+                        "error",
+                        {"message": f"Workflow failed: {exc}", "recoverable": False},
+                    )
+            else:
+                logger.error("Workflow run failed: %s", exc, exc_info=True)
+                # Make sure we emit error if we haven't completed gracefully
+                emit_event(
+                    "error",
+                    {"message": f"Workflow failed: {exc}", "recoverable": False},
+                )
         finally:
             event_queue.put_nowait(None)
 

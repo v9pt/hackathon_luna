@@ -8,6 +8,16 @@ This plan details the design, architecture, and step-by-step parallel tasks for 
 
 We maximize velocity by splitting the development of the autonomous agent system into four parallel work packages. To prevent blocking, we define a strict contract between the components upfront, including API endpoints, JSON schemas, SSE formats, and mock data.
 
+At runtime, the research agent now follows a supervisor/worker topology:
+
+- Main agent: plans the run, decides when evidence is missing, and synthesizes the final report.
+- Subagent 1: web search scout for live competitor discovery.
+- Subagent 2: PDF reader scout for manuals, whitepapers, and spec sheets.
+- Subagent 3: Python analyst for chart generation and structured comparison tables.
+- Subagent 4: vector memory curator for deduplication, recall, and persistence.
+
+Whenever the main agent emits independent tool calls, the backend executes them in parallel so the live stream reflects true multi-tool concurrency.
+
 ```mermaid
 sequenceDiagram
     participant FE as Frontend (React/Vite)

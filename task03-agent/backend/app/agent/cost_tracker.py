@@ -36,6 +36,23 @@ class CostTracker:
         self._total_usd += call_usd
         return self.get_total()
 
+    def record_estimate(
+        self, model: str, input_chars: int = 0, output_chars: int = 0
+    ) -> CostSnapshot:
+        """Record a conservative live estimate when provider usage is delayed.
+
+        Gemini streaming does not guarantee usage metadata on every chunk. The
+        UI still needs monotonic spend telemetry while reasoning and tool work
+        are happening, so this method estimates tokens from character volume.
+        """
+        prompt_tokens = max(0, input_chars // 4)
+        completion_tokens = max(0, output_chars // 4)
+        if input_chars > 0 and prompt_tokens == 0:
+            prompt_tokens = 1
+        if output_chars > 0 and completion_tokens == 0:
+            completion_tokens = 1
+        return self.record(model, prompt_tokens, completion_tokens)
+
     def get_total(self) -> CostSnapshot:
         """Return current cumulative snapshot."""
         return CostSnapshot(

@@ -2,6 +2,15 @@
 
 This guide explains how to start, verify, and interact with the Autonomous Multi-Tool AI Research Agent.
 
+The runtime now uses one main supervisor agent and four parallel subagents:
+
+- Web search scout
+- PDF reader scout
+- Python chart analyst
+- Vector memory curator
+
+The backend executes independent tool calls in parallel, so the SSE stream shows concurrent research, extraction, analysis, and memory updates.
+
 ---
 
 ## ⚡ Quick Start: Running the Application

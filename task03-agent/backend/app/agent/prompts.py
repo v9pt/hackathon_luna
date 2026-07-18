@@ -45,8 +45,27 @@ Your run_id for memory operations: {run_id}
 Topic: {topic}
 """
 
-SYNTHESIS_PROMPT = """Based on the gathered worker summaries and memory facts, write the complete final report.
-The report MUST be extremely detailed, professional, and thorough. For each competitor, write at least 3-4 comprehensive paragraphs citing specific sensor names, battery capacities (e.g. mAh or days), operating system versions, and specific health/fitness metrics.
-Use the stored evidence before writing each section.
-Include chart references for any chart payloads emitted by code_executor.
-Format: clean Markdown suitable for PDF export, with concise headings and a clear comparison table."""
+SYNTHESIS_PROMPT = """Write the complete final report now. Do not describe what you will do next.
+
+The response MUST be the final Markdown document only, suitable for direct display in the report workspace and PDF/Markdown export.
+
+Required structure:
+# Wearable Tech Competitors Report
+## Executive Summary
+## Competitors Overview Table
+## Market Share Chart
+## Feature Comparison Chart
+## Competitor Profiles
+### Apple Watch
+### Samsung Galaxy Watch
+### Garmin
+### Fitbit / Google Pixel Watch
+### Oura Ring
+## Conclusion & Key Differentiators
+
+Quality bar:
+- Include a comparison table with competitor, segment position, technical differentiators, battery profile, health metrics, ecosystem, and risk/weakness.
+- For each competitor, write at least 2 detailed paragraphs with concrete sensors, battery life or capacity, operating system/ecosystem, health metrics, and product strategy.
+- Include chart interpretation paragraphs for both chart payloads.
+- Use the gathered worker summaries and memory facts. If a detail is uncertain, label it as an estimate rather than omitting the section.
+- Do not output a planning sentence, progress update, apology, or short summary."""
