@@ -40,6 +40,12 @@ async def web_search(query: str) -> ToolResult:
     Returns:
         ToolResult with grounded text and source URLs.
     """
+    # Rate-limit delay before calling Gemini (free tier: 5 req/min)
+    from app.config import get_settings as _get_settings
+    delay = _get_settings().gemini_request_delay
+    if delay > 0:
+        await asyncio.sleep(delay)
+
     for attempt in range(_MAX_RETRIES):
         try:
             res = await _gemini_search(query)
@@ -71,10 +77,15 @@ async def web_search(query: str) -> ToolResult:
         except Exception as exc:
             logger.warning("web_search attempt %d failed: %s", attempt + 1, exc)
             if attempt < _MAX_RETRIES - 1:
-                await asyncio.sleep(2**attempt)
+                # Use longer backoff for rate limits (429): 15s, 30s
+                is_rate_limit = "429" in str(exc) or "quota" in str(exc).lower()
+                backoff = (15 * (attempt + 1)) if is_rate_limit else (2 ** attempt)
+                logger.info("web_search backing off %ds (rate_limit=%s)", backoff, is_rate_limit)
+                await asyncio.sleep(backoff)
 
     return ToolResult(
         success=False,
         output="",
         error=f"web_search failed after {_MAX_RETRIES} retries",
     )
+
