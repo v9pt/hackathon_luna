@@ -1,0 +1,8 @@
+.superpowers/
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+.coverage
+test-results/
+.pytest_cache/
