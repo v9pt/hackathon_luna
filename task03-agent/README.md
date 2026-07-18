@@ -73,8 +73,8 @@ If you wish to test the APIs directly, you can run these command line checks:
 
 ### 1. Check API Health
 ```bash
-curl -X GET http://127.0.0.1:8000/api/v1/agent/health
-# Expected output: {"status":"healthy"}
+curl -X GET http://127.0.0.1:8000/health
+# Expected output: {"status":"ok"}
 ```
 
 ### 2. Trigger a Research Agent Run
