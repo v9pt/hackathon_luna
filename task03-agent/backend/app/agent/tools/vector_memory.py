@@ -39,6 +39,8 @@ async def store_memory(
     try:
         collection = _get_collection(run_id)
         meta = json.loads(metadata) if metadata else {}
+        if not meta:
+            meta = {"source": "default"}
         doc_id = f"{run_id}-{collection.count()}"
         collection.add(documents=[text], metadatas=[meta], ids=[doc_id])
         return ToolResult(success=True, output=f"Stored document {doc_id}")
@@ -81,7 +83,7 @@ async def add_facts(run_id: str, facts: list[str]) -> ToolResult:
         collection = _get_collection(run_id)
         for i, fact in enumerate(facts):
             doc_id = f"{run_id}-{collection.count()}-{i}"
-            collection.add(documents=[fact], metadatas=[{}], ids=[doc_id])
+            collection.add(documents=[fact], metadatas=[{"source": "add_facts"}], ids=[doc_id])
         return ToolResult(success=True, output=f"Stored {len(facts)} facts")
     except Exception as exc:
         logger.warning("add_facts failed: %s", exc)
